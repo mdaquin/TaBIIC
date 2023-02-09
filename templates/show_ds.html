@@ -1,0 +1,343 @@
+<html>
+  <head>
+    <title>TaBIIC - Taxonomy Building through Interactive/Iterative Clustering</title>
+    <style>
+      * {font-family: Verdana, Sans; margin: 0px; padding: 0px; box-sizing: border-box}
+      #main{width: 100%; height: 100%}
+      #leftpanel{width: 30%; height: 100%; background: #333; float:left; color: white}
+      #rightpanel{width: 70%; height: 100%; float: right; background: #333}
+      #detailspanel{width: 100%; height: 90%;}
+      #cutpanel{width: 100%; height: 10%}
+      #cutbutton{display: block; width: 80%; padding: 10px; margin-left: 10%; background: green; border-radius: 5px; color: white; text-align: center; font-size: 120%; text-decoration: none}
+      .variable{margin-left: 10px;}
+      .varname{margin-right: 10px;}
+      .cluster_odd > .node_name{background: red; color: white; text-align: center}
+      .concept_odd > .node_name{background: blue; color: white; text-align: center}
+      .cluster_even > .node_name{background: orange; color: white; text-align: center}
+      .concept_even > .node_name{background: green; color: white; text-align: center}      
+      .node{float:left;padding:5px;vertical-align: middle}
+      .node_name{vertical-align: middle; font-size: 120%}
+      #name{width: 80%; margin-left: 10%; margin-top: 20px;margin-bottom: 10px;font-size: 120%}
+      .desc_var{margin-top: 10px; margin-left: 10px;}
+      .def_var{margin-top: 10px; margin-left: 10px;}      
+      .desclabel{font-weight: bold; color: #ffaaaa;}
+      .deflabel{font-weight: bold; color: #aaaaff;}      
+      .dialog{position: fixed; top: 30%; width: 60%; padding: 5vh; margin-left: 20%; background: #333; border: 2px white solid; border-radius: 10px; display: none;}
+      .defDiagLabel{float:left; font-weight: bold; color: white; font-size: 120%; width: 20%;}
+      .definput{float: right; font-size: 120%; width: 75%;}
+      .diagMessage{margin-top: 5vh; color:white; font-style: italic}
+      #defNumDiagIn{width: 20%;}
+      #defNumDiagTIn{width: 20%;}
+      #defNumCom{font-size: 150%; color: white; float:right}
+      #defNumSize{font-size: 150%; color: white; float:right}
+      .button{font-size: 150%; float:right; background: green; border-radius: 5px; color:white; text-decoraton: none; padding: 3px; margin-left: 5%}
+    </style>
+  </head>
+  <body>
+    <div id="main">
+      <div id="leftpanel">
+	<div id="detailspanel">
+	</div>
+	<div id="cutpanel">
+	  <a class="button" id="cutbutton" href="javascript:cut();">Cut</a>
+	</div>
+      </div>
+      <div id="rightpanel">
+      </div>
+    </div>
+    <div id="defineCatDiag" class="dialog">
+      <div class="defDiagLabel" id="defCatDiagLab">var name:</div> <input onkeydown="catdiagchanged(this)" class="definput" id="defCatDiagIn" placeholder="definition" />
+      <div class="diagMessage">define the concept as taking a value for the selected variable. If it could be different values, separate them with the keyword <strong>or</strong>.</div>
+    </div>
+    <div id="defineNumDiag" class="dialog">
+      <a href="javascript:defineNum();" class="button">Go</a>
+      <span id="defNumSize">, _%)</span>      
+      <input onkeydown="catnumtreshchanged(this)" class="definput" id="defNumDiagTIn" placeholder="tresholdvalue" />
+      <span id="defNumCom"> (_</span>
+      <div class="defDiagLabel" id="defNumDiagLab">var name:</div> <input onkeydown="catnumavgchanged(this)" class="definput" id="defNumDiagIn" placeholder="average value" />
+
+
+      <div class="diagMessage">define the concept as one with either an average value for the variable, or on one side of a treshold.</div>
+    </div>    
+  </body>
+  <script>
+    var ds = {{ds|tojson|safe}}
+    var selected = ds.tree.nid
+    document.addEventListener("DOMContentLoaded", function() {
+	showDS(ds, selected)
+    });
+    function showDS(ds, selected){	
+	console.log(findNode(ds.tree, selected))
+	if (!findNode(ds.tree, selected).parent) showVariables(ds.variables)
+	else showDetails(selected)
+	showTree(ds.tree, selected)
+    }
+    function showVariables(vars){
+	var st = '<input type="text" placeholder="Name of the cluster/concept" id="name" onchange="nameChanged()"'
+	if (ds.tree.name) st+=' value="'+ds.tree.name+'"'
+	st+='/>'
+	const size = Object.keys(vars).length
+	const margin = 50/size
+	for (var v in vars){
+	    st+='<div class="variable" style="margin-top: '+margin+'vh">'
+	    st+='<span class="varname">'+v+'</span>'
+	    st+='<select onchange="javascript:varChanged(\''+v+'\')" class="var_select" id="var_select_'+v+'">'
+	    st+='<option value="id"'
+	    if (vars[v].type == "ID") st+=" selected"
+	    st+='>ID</option>'
+	    st+='<option value="cat"'
+	    if (vars[v].type == "categorial") st+=" selected"	    
+	    st+='>categorial</option>'
+	    st+='<option value="num"'
+	    if (vars[v].type == "numeric") st+=" selected"	    	    
+	    st+='>numeric</option>'	    
+	    st+='</select>'
+	    st+='</div>'
+	}
+	document.getElementById("detailspanel").innerHTML=st
+    }
+    function showDetails(selected){
+	document.getElementById("detailspanel").innerHTML=""
+	const n = findNode(ds.tree, selected)
+	var st = '<input type="text" placeholder="Name of the cluster/concept" id="name" onchange="nameChanged()"'
+	if (n.name) st+=' value="'+n.name+'"'
+	st+='/>'
+	if (n.definition) {
+	    st+='<div class="def_var">'
+	    st+='<span class="deflabel" onclick="define(\''+n.definition.variable+'\',\''+n.definition.values+'\',\'\')">'+n.definition.variable+'</span>: '
+	    for(var j in n.definition.values){
+		if (j!=0) st+=" <strong>OR</strong> "
+		st+=n.definition.values[j]
+	    }
+	    if (n.definition.type == "&gt;="){
+		st+= ">= "+n.definition.value.toFixed(2)
+	    }
+	    if (n.definition.type == "&lt;="){
+		st+= "<= "+n.definition.value.toFixed(2)
+	    }
+	    if (n.definition.type == ">"){
+		st+= "> "+n.definition.value.toFixed(2)
+	    }
+	    if (n.definition.type == "<"){
+		st+= "< "+n.definition.value.toFixed(2)
+	    }	    
+	    st+='</div>'
+	}
+	for (var i in n.description){ // what if def...
+	    st+='<div class="desc_var">'
+	    st+='<span class="desclabel" onclick="define(\''+n.description[i][0]+'\',\''+n.description[i][1]+'\',\''+n.description[i][2]+'\')">'+n.description[i][0]+'</span>: '
+	    if (typeof n.description[i][1] == "number")
+		st+=n.description[i][1].toFixed(2)+' ('+n.description[i][2].toFixed(2)+')'
+	    else
+		st+=n.description[i][1]+' ('+(n.description[i][2]*100).toFixed(1)+'%)'
+	    st+='</div>'
+	}
+	document.getElementById("detailspanel").innerHTML=st	
+    }
+    function define(v,d1,d2){
+	const t = ds.variables[v].type
+	if (t == "categorial") showCategorialSetDialog(v,d1)
+	else showNumericSetDialog(v,d1,d2)
+    }
+    var editingv = ""
+    function showCategorialSetDialog(v,d){
+	editingv = v
+	const dd = d.replaceAll(",", " OR ")
+	document.getElementById("defCatDiagLab").innerHTML=v+":"
+	document.getElementById("defCatDiagIn").value=dd
+	document.getElementById("defineCatDiag").style.display="block"
+    }
+    function showNumericSetDialog(v,d1,d2){
+	editingv=v
+	document.getElementById("defNumDiagLab").innerHTML=v+":"
+	document.getElementById("defNumDiagIn").value=d1
+	getTresholdFromAvg(d1)
+	document.getElementById("defineNumDiag").style.display="block"	
+    }
+    function getTresholdFromAvg(a){
+	fetch("{{url_for("tFromA")}}", {
+	    method: 'POST',
+	    body: JSON.stringify({"did":ds.did, "nid": selected, "var": editingv, "avg": a})
+	}).then(function (response) {
+	    if (response.ok) {
+		return response.json();
+	    } else {
+		return Promise.reject(response);
+	    }
+	}).then(function (data) {	    
+	    console.log(data)
+	    document.getElementById("defNumDiagTIn").value=data["treshold"]
+	    document.getElementById("defNumCom").innerHTML=" ("+data["comparator"]
+	    document.getElementById("defNumSize").innerHTML=", "+data["size"]+"%)"		    
+	}).catch(function (err) {
+	    console.warn('Something went wrong.', err);
+	});	
+    }
+    function getAvgFromTresh(t,c){
+	fetch("{{url_for("aFromT")}}", {
+	    method: 'POST',
+	    body: JSON.stringify({"did":ds.did, "nid": selected, "var": editingv, "tre": t, "com": c})
+	}).then(function (response) {
+	    if (response.ok) {
+		return response.json();
+	    } else {
+		return Promise.reject(response);
+	    }
+	}).then(function (data) {	    
+	    console.log(data)
+	    document.getElementById("defNumDiagIn").value=data.average
+	    document.getElementById("defNumCom").innerHTML=" ("+c
+	    document.getElementById("defNumSize").innerHTML=", "+data.size+"%)"		
+	}).catch(function (err) {
+	    console.warn('Something went wrong.', err);
+	});
+    }
+    function catnumavgchanged(){
+	const a = document.getElementById("defNumDiagIn").value
+	getTresholdFromAvg(a)
+    }
+    function catnumtreshchanged(){
+	const t = document.getElementById("defNumDiagTIn").value
+	const c = document.getElementById("defNumCom").innerHTML.substring(2)
+	getAvgFromTresh(t,c)
+    }
+    function catdiagchanged(){
+	if(event.key === 'Enter') {
+	    document.getElementById("defineCatDiag").style.display="none"
+	    const val = document.getElementById("defCatDiagIn").value
+	    fetch("{{url_for("define")}}", {
+		method: 'POST',
+		body: JSON.stringify({"did":ds.did, "nid": selected, "var": editingv, "val": val})
+	    }).then(function (response) {
+		if (response.ok) {
+		    return response.json();
+		} else {
+		    return Promise.reject(response);
+		}
+	    }).then(function (data) {
+		if (data.status && data.status == "error") {
+		    alert("error")
+		    return 
+		}
+		ds.tree = data
+		showDS(ds, selected)		
+	    }).catch(function (err) {
+		console.warn('Something went wrong.', err);
+	    });	    
+	}	  
+    }
+    function defineNum(){
+	document.getElementById("defineNumDiag").style.display = "none"
+	const com  = document.getElementById("defNumCom").innerHTML.substring(2)
+	const val = document.getElementById("defNumDiagTIn").value
+	fetch("{{url_for("defineNum")}}", {
+		method: 'POST',
+	    body: JSON.stringify({"did":ds.did, "nid": selected, "var": editingv, "val": val, "com":com})
+	    }).then(function (response) {
+		if (response.ok) {
+		    return response.json();
+		} else {
+		    return Promise.reject(response);
+		}
+	    }).then(function (data) {
+		if (data.status && data.status == "error") {
+		    alert("error")
+		    return 
+		}
+		ds.tree = data
+		showDS(ds, selected)		
+	    }).catch(function (err) {
+		console.warn('Something went wrong.', err);
+	    });	    	
+    }
+    function nameChanged(){
+	const n = findNode(ds.tree, selected)
+	n.name=document.getElementById("name").value
+	fetch("{{url_for("name")}}", {
+	    method: 'POST',
+	    body: JSON.stringify({"did":ds.did, "nid": selected, "name": n.name})
+	}).then(function (response) {
+	    if (response.ok) {
+		return response.json();
+	    } else {
+		return Promise.reject(response);
+	    }
+	}).then(function (data) {
+	    console.log(data)
+	}).catch(function (err) {
+	    console.warn('Something went wrong.', err);
+	});
+	showTree(ds.tree, selected)
+    }
+    function showTree(dst, selected){
+	console.log(dst)
+	const levels = getLevelCount(dst)
+	console.log(levels)
+	const height = 100/levels
+	const el = document.getElementById("rightpanel")
+	el.innerHTML=''
+	showNode(dst, selected, height, el)
+    }
+    function showNode(n,s,h,e){
+	var cl = "cluster"
+	if (parseInt(n.nid)%2==0) cl+="_even"
+	else cl+="_odd"
+	if (n.definition) {
+	    cl = "concept"
+	    if (n.definition.type=="complement" || n.definition.type==">" || n.definition.type=="<") cl+="_odd"
+	    else cl+="_even"
+	}
+	var name = "&nbsp;"
+	if (n.name) name = n.name
+	var border = "0px"
+	if (n.nid==s) border="4px solid white"
+	st = '<div id="node_'+n.nid+'" class="node '+cl+'" style="width:'+n.width+'%;"><div class="node_name" onclick="select('+n.nid+')" style="border: '+border+';height: '+(0.95*h)+'vh; margin-top: '+(0.025*h)+'vh">'+name+'</div></div>'
+	e.innerHTML+=st
+	const el = document.getElementById("node_"+n.nid)
+	for(var c in n.children){
+	    showNode(n.children[c], s, h, el)
+	}
+    }
+    function getLevelCount(t){
+	var l = 1
+	var maxsubl = 0
+	for(var c in t.children){
+	    const nl = getLevelCount(t.children[c])
+	    if(nl>maxsubl) maxsubl=nl
+	}
+	return l+maxsubl
+    }
+    function varChanged(v){
+	console.log(v)
+    }
+    function findNode(n, nid){
+	if (n.nid == nid) return n
+	for (var c in n.children) {
+	    var fn = findNode(n.children[c], nid)
+	    if (fn) return fn
+	}
+	return undefined
+    }
+    function select(nid){
+	selected=nid
+	showDS(ds, selected)	
+    }
+    function cut(){
+	fetch("{{url_for("cut")}}", {
+	    method: 'POST',
+	    body: JSON.stringify({"did":ds.did, "nid": selected})
+	}).then(function (response) {
+	    if (response.ok) {
+		return response.json();
+	    } else {
+		return Promise.reject(response);
+	    }
+	}).then(function (data) {
+	    ds.tree = data
+	    showTree(data, selected)
+	}).catch(function (err) {
+	    console.warn('Something went wrong.', err);
+	});
+    }
+  </script>
+</html>

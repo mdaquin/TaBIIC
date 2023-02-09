@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <title>TaBIIC - Taxonomy Building through Interactive/Iterative Clustering</title>
+    <style>
+      * {font-family: Verdana, Sans; font-size: 18px}
+      #main {width: 100%;}
+      #form {margin-left: 10%; width: 80%; text-align: center; margin-top: 45vh;}
+      #error{margin-left: 10%; width: 80%; text-align: center; margin-top: 10vh; color:#882222}
+    </style>
+  </head>
+  <body>
+    <div id="main">
+      <form method="POST" action="." id="form" enctype="multipart/form-data">
+	<span id="label">CSV File:</span>
+	<input type="file" name="csvfile" />
+	<input type="submit" name="Go" value="Go" />
+      </form>
+      <div id="error">{{error}}</div>
+    </div>
+  </body>
+</html>
+
