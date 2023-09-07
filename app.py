@@ -170,7 +170,7 @@ def defineNum():
     n.size = len(ndf)
     print("n.size=",n.size)
     n.width = (n.size/p.size)*100        
-
+    if n.width < 5 : n.width = 5.0
     n2 = Node()
     n2.parent = p.nid
     p.children=[n,n2]
@@ -180,6 +180,16 @@ def defineNum():
     n2.size = len(n2df)
     print("n2.size=", n2.size)
     n2.width = (n2.size/p.size)*100
+    if n2.width < 5 : n2.width = 5.0
+    # realign so width add up to 100
+    snw = 0
+    na = 0
+    for n in p.children:
+        snw += n.width
+        if n.width != 5.0 : na+=1
+    vta = (snw-100) / na
+    for n in p.children:
+        if n.width != 5.0 : n.width -= vta        
     describe(n,n2,DSSP[did]["variables"],DSSP[did]["pdf"], DSSP[did]["odf"], DSSP[did]["tree"])
     return DSSP[did]["tree"].toDict()
     
