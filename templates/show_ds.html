@@ -6,18 +6,18 @@
       #main{width: 100%; height: 100%}
       #leftpanel{width: 30%; height: 100%; background: #333; float:left; color: white}
       #rightpanel{width: 70%; height: 100%; float: right; background: #333}
-      #detailspanel{width: 100%; height: 90%;}
+      #detailspanel{width: 100%; height: 90%; overflow-y: scroll;}
       #cutpanel{width: 100%; height: 10%}
-      #cutbutton{display: block; width: 80%; padding: 10px; margin-left: 10%; background: green; border-radius: 5px; color: white; text-align: center; font-size: 120%; text-decoration: none}
-      .variable{margin-left: 10px;}
+      #cutbutton{display: block; width: 80%; float: none; padding: 10px; margin-left: 15px; background: green; border-radius: 5px; color: white; text-align: center; font-size: 120%; text-decoration: none}
+      .variable{margin-left: 15px;}
       .varname{margin-right: 10px;}
-      .cluster_odd > .node_name{background: red; color: white; text-align: center}
-      .concept_odd > .node_name{background: blue; color: white; text-align: center}
-      .cluster_even > .node_name{background: orange; color: white; text-align: center}
-      .concept_even > .node_name{background: green; color: white; text-align: center}      
+      .cluster_odd > .node_name{background: red; color: white; text-align: center; overflow-wrap: break-word}
+      .concept_odd > .node_name{background: blue; color: white; text-align: center; overflow-wrap: break-word}
+      .cluster_even > .node_name{background: orange; color: white; text-align: center; overflow-wrap: break-word}
+      .concept_even > .node_name{background: green; color: white; text-align: center; overflow-wrap: break-word}      
       .node{float:left;padding:5px;vertical-align: middle}
       .node_name{vertical-align: middle; font-size: 120%}
-      #name{width: 80%; margin-left: 10%; margin-top: 20px;margin-bottom: 10px;font-size: 120%}
+      #name{width: 80%; margin-left: 15px; margin-top: 20px; margin-bottom: 10px; font-size: 120%}
       .desc_var{margin-top: 10px; margin-left: 10px;}
       .def_var{margin-top: 10px; margin-left: 10px;}      
       .desclabel{font-weight: bold; color: #ffaaaa;}
@@ -77,18 +77,18 @@
 	if (ds.tree.name) st+=' value="'+ds.tree.name+'"'
 	st+='/>'
 	const size = Object.keys(vars).length
-	const margin = 50/size
+	const margin = "15px"
 	for (var v in vars){
-	    st+='<div class="variable" style="margin-top: '+margin+'vh">'
+	    st+='<div class="variable" style="margin-top: '+margin+'">'
 	    st+='<span class="varname">'+v+'</span>'
 	    st+='<select onchange="javascript:varChanged(\''+v+'\')" class="var_select" id="var_select_'+v+'">'
-	    st+='<option value="id"'
+	    st+='<option value="ID"'
 	    if (vars[v].type == "ID") st+=" selected"
 	    st+='>ID</option>'
-	    st+='<option value="cat"'
+	    st+='<option value="categorial"'
 	    if (vars[v].type == "categorial") st+=" selected"	    
 	    st+='>categorial</option>'
-	    st+='<option value="num"'
+	    st+='<option value="numeric"'
 	    if (vars[v].type == "numeric") st+=" selected"	    	    
 	    st+='>numeric</option>'	    
 	    st+='</select>'
@@ -309,6 +309,22 @@
     }
     function varChanged(v){
 	console.log(v)
+	fetch("{{url_for("varchange")}}", {
+	    method: 'POST',
+	    body: JSON.stringify({"did":ds.did, "var": v, "type":  document.getElementById("var_select_"+v).value})
+	}).then(function (response) {
+	    if (response.ok) {
+		return response.json();
+	    } else {
+		return Promise.reject(response);
+	    }
+	}).then(function (data) {
+	    ds.tree = data.tree
+	    ds.variables = data.vars
+	    showTree(ds.tree, selected)
+	}).catch(function (err) {
+	    console.warn('Something went wrong.', err);
+	});
     }
     function findNode(n, nid){
 	if (n.nid == nid) return n

@@ -138,6 +138,20 @@ def describe(n1,n2,variables,df,odf,root):
 def showDS(did):
     return render_template("show_ds.html", ds={"did":did, "variables":DSSP[did]["variables"], "tree":DSSP[did]["tree"].toDict()})
 
+
+@app.route('/varchange', methods=["POST"])
+def varchange():
+    data = request.get_json(force=True)
+    did = data["did"]
+    var = data["var"]
+    ty = data["type"]
+    print(f"change {var} to {ty}")
+    DSSP[did]["variables"][var]["type"] = ty # change type
+    # TODO: if numerical - Try to convert and calculate mean/std/min/max
+    DSSP[did]["pdf"] = processDF(DSSP[did]["odf"], DSSP[did]["variables"]) # reprocess DF
+    DSSP[did]["tree"].children=[]
+    return {"tree":DSSP[did]["tree"].toDict(), "vars": DSSP[did]["variables"]}
+
 @app.route('/defineNum', methods=["POST"])
 def defineNum():
     data = request.get_json(force=True)
@@ -210,7 +224,8 @@ def define():
     ndf = n.createDF(DSSP[did]["pdf"],DSSP[did]["tree"]) 
     n.size = len(ndf)
     print("n.size=",n.size)
-    n.width = (n.size/p.size)*100    
+    n.width = (n.size/p.size)*100
+    if n.width < 5 : n.width = 5.0
     n2 = Node()
     n2.parent = p.nid
     p.children=[n,n2]+ocns    
@@ -218,6 +233,17 @@ def define():
     n2df = n2.createDF(DSSP[did]["pdf"], DSSP[did]["tree"], sibling=n)
     n2.size = len(n2df)
     n2.width = (n2.size/p.size)*100
+    if n2.width < 5 : n2.width = 5.0
+
+    # realign so width add up to 100
+    snw = 0
+    na = 0
+    for n in p.children:
+        snw += n.width
+        if n.width != 5.0 : na+=1
+    vta = (snw-100) / na
+    for n in p.children:
+        if n.width != 5.0 : n.width -= vta        
     describe(n,n2,DSSP[did]["variables"],DSSP[did]["pdf"], DSSP[did]["odf"], DSSP[did]["tree"])
     return DSSP[did]["tree"].toDict()
 
@@ -244,7 +270,7 @@ def tFromA():
     print(df.iloc[0:index-1][var].mean())
     treshold=df.iloc[index-2][var]
     print(treshold)
-    return {"treshold": treshold, "size": round((index-1)*100/len(df)), "comparator": comp}
+    return {"treshold": int(treshold), "size": round((index-1)*100/len(df)), "comparator": comp}
 
 @app.route('/aFromT', methods=["POST"])
 def aFromT():
