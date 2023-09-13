@@ -8,7 +8,8 @@
       #rightpanel{width: 70%; height: 100%; float: right; background: #333}
       #detailspanel{width: 100%; height: 90%; overflow-y: scroll;}
       #cutpanel{width: 100%; height: 10%}
-      #cutbutton{display: block; width: 80%; float: none; padding: 10px; margin-left: 15px; background: green; border-radius: 5px; color: white; text-align: center; font-size: 120%; text-decoration: none}
+      #cutbutton{display: block; width: 80%; float: none; padding: 10px; margin-left: 15px; background: green; border-radius: 5px; color: white; text-align: center; font-size: 120%; text-decoration: none; height: 4vh;}
+      #savebutton{display: block; width: 80%; float: none; padding: 10px; margin-left: 15px; background: blue; border-radius: 5px; color: white; text-align: center; font-size: 120%; text-decoration: none; margin-top: 1vh; height: 4vh}
       .variable{margin-left: 15px;}
       .varname{margin-right: 10px;}
       .cluster_odd > .node_name{background: red; color: white; text-align: center; overflow-wrap: break-word}
@@ -40,6 +41,7 @@
 	</div>
 	<div id="cutpanel">
 	  <a class="button" id="cutbutton" href="javascript:cut();">Cut</a>
+	  <a class="button" id="savebutton" href="javascript:save();">Save OWL</a>	  
 	</div>
       </div>
       <div id="rightpanel">
@@ -354,6 +356,83 @@
 	}).catch(function (err) {
 	    console.warn('Something went wrong.', err);
 	});
+    }
+    function save(){
+	var data = "@prefix : <https://changethisuri.org/tabiic#> . \n"	
+	data += "@prefix owl: <http://www.w3.org/2002/07/owl#> . \n"
+	data += "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . \n"
+	data += "@prefix xml: <http://www.w3.org/XML/1998/namespace> . \n"
+	data += "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> . \n"
+	data += "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> . \n"
+	data += "@base <https://changethisuri.org/tabiic#> . \n\n"
+
+	data += save_rec(ds.tree,undefined)
+	console.log(data)
+	var file = new Blob([data], {type: "text/plain"});
+	var filename = "tabiic.ttl"
+	if (window.navigator.msSaveOrOpenBlob) {
+            window.navigator.msSaveOrOpenBlob(file, filename);
+	} else { 
+            var a = document.createElement("a");
+	    url = URL.createObjectURL(file);
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);  
+            }, 0); 
+	}
+    }
+    function urify(s){
+	return s.replaceAll(" ","_")
+    }
+    function save_rec(n,p){
+	var res = ""
+	if (n.name != undefined){
+	    res += ":"+urify(n.name)+" rdf:type rdfs:Class"
+	    if (p != undefined) {
+		res += " ; \n   rdfs:subClassOf :"+urify(p.name) // and if p does not have a name?
+	    }
+	    if (n.definition != undefined){
+		if (n.definition.type == "categorial" || n.definition.type == "complement"){
+		    res += " ; \n   owl:equivalentClass [ owl:intersectionOf ( :"+urify(p.name) // and if p does not have a name ?
+		    res+= " \n      [ rdf:type owl:Restriction ; "
+		    res+= " \n        owl:onProperty :"+urify(n.definition.variable)+"; "
+		    if (n.definition.values.length > 1) {
+			res+= " \n        owl:someValuesFrom [\n"
+			res+="            owl:oneOf(\n"
+		    }
+		    else res+= " \n        owl:hasValue \n"
+		    for (var v in n.definition.values){
+			res+= "            :"+urify(n.definition.values[v])+"\n"
+		    }
+		    if (n.definition.values.length > 1) res+="         ) ]\n"
+		    res+= "         ])]"
+		}
+		else {
+		    var comp = "xsd:minExclusive"
+		    if (n.definition.type==">") comp = "xsd:maxExclusive"
+		    if (n.definition.type=="&lt;=") comp = "xsd:minInclusive"
+		    if (n.definition.type=="&gt;=") comp = "xsd:maxInclusive"		    
+		    res += " ; \n   owl:equivalentClass [ owl:intersectionOf ( :"+urify(p.name) // and if p does not have a name ?		    
+		    res+= " \n      [ rdf:type owl:Restriction ; "
+		    res+= " \n        owl:onProperty :"+urify(n.definition.variable)+"; "
+		    res+= " \n        owl:someValuesFrom \n"
+		    res+= " \n            [ rdf:type rdfs:Datatype ; \n"
+                    res+= " \n              owl:onDatatype xsd:decimal ;"
+                    res+= " \n              owl:withRestrictions ( [ "+comp+" "+n.definition.value+"])"
+                    res+= " \n            ]"
+                    res+= " \n      ])]"		    
+		}
+	    }
+	    res += " . \n"
+	    for(var c in n.children){
+		res += save_rec(n.children[c],n)
+	    }	 	    
+	}
+	return res
     }
   </script>
 </html>
