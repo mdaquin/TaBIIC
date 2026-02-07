@@ -5,11 +5,7 @@ d’Aquin, M. (2023). TaBIIC: Taxonomy Building Through Iterative and Interactiv
 https://ebooks.iospress.nl/volumearticle/66098 
 
 
-TaBIIC is a prototype tool to create an initial version of a taxonomy of concepts, with some ontological definitions attached to them, from tabular data. The principles on which it is based are described in the paper.
-
-> Mathieu d'Aquin. TaBIIC: Taxonomy Building through Iterative and Interactive Clustering. In Proceedings of the 13th International Conference on Formal Ontology in Information Systems (FOIS 2023)
-
-This idea can be summarised as follows: Taxonomies are made of concepts that represent subsets of items that are similar in the sense that they share some characteristics. If we have available a dataset corresponding to a set of items with characteristics, it is therefore natural to try to use clustering methods (such as K-Means or agglomerative clustering) to generate an initial version of such a taxonomy. However, doing so leaves very little control over the definition of the concepts included, and therefore will lead to significant efforts afterwards in refining, describing and organising them.
+TaBIIC is a prototype tool to create an initial version of a taxonomy of concepts, with some ontological definitions attached to them, from tabular data. This idea can be summarised as follows: Taxonomies are made of concepts that represent subsets of items that are similar in the sense that they share some characteristics. If we have available a dataset corresponding to a set of items with characteristics, it is therefore natural to try to use clustering methods (such as K-Means or agglomerative clustering) to generate an initial version of such a taxonomy. However, doing so leaves very little control over the definition of the concepts included, and therefore will lead to significant efforts afterwards in refining, describing and organising them.
 
 TaBIIC introduces such element of control by using clustering iteratively and interactively. What this means is that, as the taxonomy is being built, the user has the possibility to label concepts, fix their definitions (the characteristics that groupe them together), and further divide them using clustering. In this way, the taxonomy created is at the same time aligned to the data from which it was generated, and aligned with the users understanding and knowledge of the domain. It can in addition be loaded directly into an ontology editing tool (such as [Protégé](https://protege.stanford.edu/)) to be further refined.
 
