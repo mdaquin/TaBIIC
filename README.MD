@@ -1,4 +1,4 @@
-# TaBIIC - Taxonomy Building Through Interative and Interactive Clustering
+# TaBIIC - Taxonomy Building Through Iterative and Interactive Clustering
 
 This repository contains the implementation of a tool as a proof of concept of the approach described in the paper
 d’Aquin, M. (2023). TaBIIC: Taxonomy Building Through Iterative and Interactive Clustering. In Formal Ontology in Information Systems (pp. 155-168). IOS Press.
